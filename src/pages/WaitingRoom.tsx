@@ -1,12 +1,12 @@
-import { Card } from '@/components/ui/card';
-import { UserName } from '@/types/game';
+import { Card } from '@/components/ui/card'
+import { UserName } from '@/types/game'
 
 interface WaitingRoomProps {
-  userSelection: UserName;
+  userSelection: UserName
 }
 
 const WaitingRoom = ({ userSelection }: WaitingRoomProps) => {
-  const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille';
+  const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille'
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-accent p-4">
@@ -29,7 +29,7 @@ const WaitingRoom = ({ userSelection }: WaitingRoomProps) => {
         </div>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default WaitingRoom;
+export default WaitingRoom

@@ -1,54 +1,92 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
-import { UserName } from '@/types/game';
-import { supabase } from '@/integrations/supabase/client';
-import { gameQuestions } from '@/lib/gameQuestions';
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { ArrowLeft } from 'lucide-react'
+import { UserName } from '@/types/game'
+import { supabase } from '@/integrations/supabase/client'
+import { gameQuestions } from '@/lib/gameQuestions'
 
 interface Top10GameProps {
-  userSelection: UserName;
-  sessionId: string;
-  onGameComplete: () => void;
-  onBack: () => void;
+  userSelection: UserName
+  sessionId: string
+  onGameComplete: () => void
+  onBack: () => void
 }
 
-const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10GameProps) => {
-  const [currentRound, setCurrentRound] = useState(1);
-  const [answers, setAnswers] = useState<string[]>(Array(10).fill(''));
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [waitingForOther, setWaitingForOther] = useState(false);
+const Top10Game = ({
+  userSelection,
+  sessionId,
+  onGameComplete,
+  onBack,
+}: Top10GameProps) => {
+  const [currentRound, setCurrentRound] = useState(1)
+  const [answers, setAnswers] = useState<string[]>(Array(10).fill(''))
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [waitingForOther, setWaitingForOther] = useState(false)
 
-  const currentQuestion = gameQuestions.top10[currentRound - 1];
+  const currentQuestion = gameQuestions.top10[currentRound - 1]
 
   useEffect(() => {
     // Check if other player has submitted this round
-    checkOtherPlayerProgress();
-  }, [currentRound, sessionId]);
+    checkOtherPlayerProgress()
+  }, [currentRound, sessionId])
 
   const checkOtherPlayerProgress = async () => {
-    const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille';
-    
+    const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille'
+
     const { data } = await supabase
       .from('game_responses')
       .select('*')
       .eq('session_id', sessionId)
       .eq('game_type', 'top10')
       .eq('user_name', otherUser)
-      .eq('round_number', currentRound);
+      .eq('round_number', currentRound)
 
     if (data && data.length > 0) {
       // Other player has submitted, we can proceed
-      setWaitingForOther(false);
+      setWaitingForOther(false)
     }
-  };
+  }
 
   const handleAnswerChange = (index: number, value: string) => {
-    const newAnswers = [...answers];
-    newAnswers[index] = value;
-    setAnswers(newAnswers);
-  };
+    const newAnswers = [...answers]
+    newAnswers[index] = value
+    setAnswers(newAnswers)
+  }
+
+  useEffect(() => {
+    let intervalId
+    if (waitingForOther) {
+      // Check if both players have submitted
+      intervalId = setInterval(async () => {
+        const { data } = await supabase
+          .from('game_responses')
+          .select('user_name')
+          .eq('session_id', sessionId)
+          .eq('game_type', 'top10')
+          .eq('round_number', currentRound)
+
+        const uniqueUsers = new Set(data?.map((r) => r.user_name))
+
+        if (uniqueUsers.size === 2) {
+          // Both players submitted
+          if (currentRound < 3) {
+            setCurrentRound(currentRound + 1)
+            setAnswers(Array(10).fill(''))
+            setIsSubmitted(false)
+            setWaitingForOther(false)
+          } else {
+            onGameComplete()
+          }
+        }
+      }, 1000)
+    }
+
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [waitingForOther])
 
   const handleSubmit = async () => {
     // Save all answers for this round
@@ -58,40 +96,14 @@ const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10Ga
       user_name: userSelection,
       round_number: currentRound,
       question: `${currentQuestion} - Item ${index + 1}`,
-      answer: answer
-    }));
+      answer: answer,
+    }))
 
-    await supabase
-      .from('game_responses')
-      .insert(responses);
+    await supabase.from('game_responses').insert(responses)
 
-    setIsSubmitted(true);
-    setWaitingForOther(true);
-
-    // Check if both players have submitted
-    setTimeout(async () => {
-      const { data } = await supabase
-        .from('game_responses')
-        .select('user_name')
-        .eq('session_id', sessionId)
-        .eq('game_type', 'top10')
-        .eq('round_number', currentRound);
-
-      const uniqueUsers = new Set(data?.map(r => r.user_name));
-      
-      if (uniqueUsers.size === 2) {
-        // Both players submitted
-        if (currentRound < 3) {
-          setCurrentRound(currentRound + 1);
-          setAnswers(Array(10).fill(''));
-          setIsSubmitted(false);
-          setWaitingForOther(false);
-        } else {
-          onGameComplete();
-        }
-      }
-    }, 1000);
-  };
+    setIsSubmitted(true)
+    setWaitingForOther(true)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
@@ -105,8 +117,12 @@ const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10Ga
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">Round {currentRound} of 3</h2>
-            <p className="text-lg text-muted-foreground mb-6">{currentQuestion}</p>
+            <h2 className="text-2xl font-bold mb-4">
+              Round {currentRound} of 3
+            </h2>
+            <p className="text-lg text-muted-foreground mb-6">
+              {currentQuestion}
+            </p>
           </div>
 
           {waitingForOther ? (
@@ -114,7 +130,9 @@ const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10Ga
               <div className="animate-pulse mb-4">
                 <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
               </div>
-              <p className="text-lg">Waiting for the other player to finish...</p>
+              <p className="text-lg">
+                Waiting for the other player to finish...
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -130,11 +148,11 @@ const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10Ga
                   />
                 </div>
               ))}
-              
+
               {!isSubmitted && (
-                <Button 
+                <Button
                   onClick={handleSubmit}
-                  disabled={answers.some(a => a.trim() === '')}
+                  disabled={answers.some((a) => a.trim() === '')}
                   className="w-full mt-6"
                   size="lg"
                 >
@@ -146,7 +164,7 @@ const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10Ga
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Top10Game;
+export default Top10Game

@@ -1,37 +1,37 @@
-import { useState } from 'react';
-import { UserName, GameType } from '@/types/game';
-import { useGameSession } from '@/hooks/useGameSession';
-import UserSelection from './UserSelection';
-import WaitingRoom from './WaitingRoom';
-import MainGame from './MainGame';
+import { useState } from 'react'
+import { UserName, GameType } from '@/types/game'
+import { useGameSession } from '@/hooks/useGameSession'
+import UserSelection from './UserSelection'
+import WaitingRoom from './WaitingRoom'
+import MainGame from './MainGame'
 
 const Index = () => {
-  const [userSelection, setUserSelection] = useState<UserName | null>(null);
-  const { 
-    session, 
-    gameProgress, 
-    isConnected, 
-    bothConnected, 
-    loading, 
-    createOrJoinSession, 
-    markGameCompleted 
-  } = useGameSession(userSelection);
+  const [userSelection, setUserSelection] = useState<UserName | null>(null)
+  const {
+    session,
+    gameProgress,
+    isConnected,
+    bothConnected,
+    loading,
+    createOrJoinSession,
+    markGameCompleted,
+  } = useGameSession(userSelection)
 
   const handleUserSelect = (user: UserName) => {
-    setUserSelection(user);
-    createOrJoinSession();
-  };
+    setUserSelection(user)
+    createOrJoinSession()
+  }
 
   const handleGameComplete = (gameType: GameType) => {
-    markGameCompleted(gameType);
-  };
+    markGameCompleted(gameType)
+  }
 
   if (!userSelection || loading) {
-    return <UserSelection onUserSelect={handleUserSelect} />;
+    return <UserSelection onUserSelect={handleUserSelect} />
   }
 
   if (isConnected && !bothConnected) {
-    return <WaitingRoom userSelection={userSelection} />;
+    return <WaitingRoom userSelection={userSelection} />
   }
 
   if (bothConnected && session) {
@@ -42,10 +42,10 @@ const Index = () => {
         gameProgress={gameProgress}
         onGameComplete={handleGameComplete}
       />
-    );
+    )
   }
 
-  return <UserSelection onUserSelect={handleUserSelect} />;
-};
+  return <UserSelection onUserSelect={handleUserSelect} />
+}
 
-export default Index;
+export default Index

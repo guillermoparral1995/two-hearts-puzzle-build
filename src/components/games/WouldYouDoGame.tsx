@@ -1,59 +1,92 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ArrowLeft, Heart, X } from 'lucide-react';
-import { UserName } from '@/types/game';
-import { supabase } from '@/integrations/supabase/client';
-import { gameQuestions } from '@/lib/gameQuestions';
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { ArrowLeft, Heart, X } from 'lucide-react'
+import { UserName } from '@/types/game'
+import { supabase } from '@/integrations/supabase/client'
+import { gameQuestions } from '@/lib/gameQuestions'
 
 interface WouldYouDoGameProps {
-  userSelection: UserName;
-  sessionId: string;
-  onGameComplete: () => void;
-  onBack: () => void;
+  userSelection: UserName
+  sessionId: string
+  onGameComplete: () => void
+  onBack: () => void
 }
 
-const WouldYouDoGame = ({ userSelection, sessionId, onGameComplete, onBack }: WouldYouDoGameProps) => {
-  const [currentRound, setCurrentRound] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [waitingForOther, setWaitingForOther] = useState(false);
+const WouldYouDoGame = ({
+  userSelection,
+  sessionId,
+  onGameComplete,
+  onBack,
+}: WouldYouDoGameProps) => {
+  const [currentRound, setCurrentRound] = useState(1)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [waitingForOther, setWaitingForOther] = useState(false)
 
-  const currentQuestion = gameQuestions.would_you_do[currentRound - 1];
+  const currentQuestion = gameQuestions.would_you_do[currentRound - 1]
 
   useEffect(() => {
-    checkOtherPlayerProgress();
-  }, [currentRound, sessionId]);
+    checkOtherPlayerProgress()
+  }, [currentRound, sessionId])
+
+  useEffect(() => {
+    let intervalId
+    if (waitingForOther) {
+      // Check if both players have submitted
+      intervalId = setInterval(async () => {
+        const { data } = await supabase
+          .from('game_responses')
+          .select('user_name')
+          .eq('session_id', sessionId)
+          .eq('game_type', 'would_you_do')
+          .eq('round_number', currentRound)
+
+        const uniqueUsers = new Set(data?.map((r) => r.user_name))
+
+        if (uniqueUsers.size === 2) {
+          if (currentRound < 5) {
+            setCurrentRound(currentRound + 1)
+            setIsSubmitted(false)
+            setWaitingForOther(false)
+          } else {
+            onGameComplete()
+          }
+        }
+      }, 1000)
+    }
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [waitingForOther])
 
   const checkOtherPlayerProgress = async () => {
-    const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille';
-    
+    const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille'
+
     const { data } = await supabase
       .from('game_responses')
       .select('*')
       .eq('session_id', sessionId)
       .eq('game_type', 'would_you_do')
       .eq('user_name', otherUser)
-      .eq('round_number', currentRound);
+      .eq('round_number', currentRound)
 
     if (data && data.length > 0) {
-      setWaitingForOther(false);
+      setWaitingForOther(false)
     }
-  };
+  }
 
   const handleAnswer = async (answer: 'yes' | 'no') => {
-    await supabase
-      .from('game_responses')
-      .insert({
-        session_id: sessionId,
-        game_type: 'would_you_do',
-        user_name: userSelection,
-        round_number: currentRound,
-        question: currentQuestion,
-        answer: answer
-      });
+    await supabase.from('game_responses').insert({
+      session_id: sessionId,
+      game_type: 'would_you_do',
+      user_name: userSelection,
+      round_number: currentRound,
+      question: currentQuestion,
+      answer: answer,
+    })
 
-    setIsSubmitted(true);
-    setWaitingForOther(true);
+    setIsSubmitted(true)
+    setWaitingForOther(true)
 
     // Check if both players have submitted
     setTimeout(async () => {
@@ -62,21 +95,21 @@ const WouldYouDoGame = ({ userSelection, sessionId, onGameComplete, onBack }: Wo
         .select('user_name')
         .eq('session_id', sessionId)
         .eq('game_type', 'would_you_do')
-        .eq('round_number', currentRound);
+        .eq('round_number', currentRound)
 
-      const uniqueUsers = new Set(data?.map(r => r.user_name));
-      
+      const uniqueUsers = new Set(data?.map((r) => r.user_name))
+
       if (uniqueUsers.size === 2) {
         if (currentRound < 5) {
-          setCurrentRound(currentRound + 1);
-          setIsSubmitted(false);
-          setWaitingForOther(false);
+          setCurrentRound(currentRound + 1)
+          setIsSubmitted(false)
+          setWaitingForOther(false)
         } else {
-          onGameComplete();
+          onGameComplete()
         }
       }
-    }, 1000);
-  };
+    }, 1000)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
@@ -85,13 +118,19 @@ const WouldYouDoGame = ({ userSelection, sessionId, onGameComplete, onBack }: Wo
           <Button variant="ghost" onClick={onBack} className="mr-4">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-3xl font-bold text-primary">Would You Do It For Me?</h1>
+          <h1 className="text-3xl font-bold text-primary">
+            Would You Do It For Me?
+          </h1>
         </div>
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">Question {currentRound} of 5</h2>
-            <p className="text-xl text-muted-foreground mb-8">{currentQuestion}</p>
+            <h2 className="text-2xl font-bold mb-4">
+              Question {currentRound} of 5
+            </h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              {currentQuestion}
+            </p>
           </div>
 
           {waitingForOther ? (
@@ -112,7 +151,7 @@ const WouldYouDoGame = ({ userSelection, sessionId, onGameComplete, onBack }: Wo
                 <Heart className="w-8 h-8" />
                 <span className="text-lg font-bold">YES</span>
               </Button>
-              
+
               <Button
                 onClick={() => handleAnswer('no')}
                 disabled={isSubmitted}
@@ -127,7 +166,7 @@ const WouldYouDoGame = ({ userSelection, sessionId, onGameComplete, onBack }: Wo
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default WouldYouDoGame;
+export default WouldYouDoGame

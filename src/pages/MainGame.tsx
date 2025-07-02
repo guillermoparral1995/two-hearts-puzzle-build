@@ -1,35 +1,52 @@
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { GameProgress, GameType, UserName } from '@/types/game';
-import PuzzlePiece from '@/components/PuzzlePiece';
-import QRCodeDisplay from '@/components/QRCodeDisplay';
-import GameContainer from '@/components/games/GameContainer';
+import { useState } from 'react'
+import { Card } from '@/components/ui/card'
+import { GameProgress, GameType, UserName } from '@/types/game'
+import PuzzlePiece from '@/components/PuzzlePiece'
+import QRCodeDisplay from '@/components/QRCodeDisplay'
+import GameContainer from '@/components/games/GameContainer'
 
 interface MainGameProps {
-  userSelection: UserName;
-  sessionId: string;
-  gameProgress: GameProgress[];
-  onGameComplete: (gameType: GameType) => void;
+  userSelection: UserName
+  sessionId: string
+  gameProgress: GameProgress[]
+  onGameComplete: (gameType: GameType) => void
 }
 
-const MainGame = ({ userSelection, sessionId, gameProgress, onGameComplete }: MainGameProps) => {
-  const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
+const MainGame = ({
+  userSelection,
+  sessionId,
+  gameProgress,
+  onGameComplete,
+}: MainGameProps) => {
+  const [selectedGame, setSelectedGame] = useState<GameType | null>(null)
 
-  const gameTypes: GameType[] = ['top10', 'predict_future', 'drawful', 'would_you_do'];
-  const allCompleted = gameProgress.length === 4 && gameProgress.every(g => g.completed);
+  const gameTypes: GameType[] = [
+    'top10',
+    'predict_future',
+    'drawful',
+    'would_you_do',
+  ]
+  const allCompleted =
+    gameProgress.length === 4 && gameProgress.every((g) => g.completed)
 
   const getGameTitle = (gameType: GameType) => {
     switch (gameType) {
-      case 'top10': return 'Top 10';
-      case 'predict_future': return 'Predict the Future';
-      case 'drawful': return 'Drawful';
-      case 'would_you_do': return 'Would You Do It?';
+    case 'top10':
+      return 'Top 10'
+    case 'predict_future':
+      return 'Predict the Future'
+    case 'drawful':
+      return 'Drawful'
+    case 'would_you_do':
+      return 'Would You Do It?'
     }
-  };
+  }
 
   const isGameCompleted = (gameType: GameType) => {
-    return gameProgress.find(g => g.game_type === gameType)?.completed || false;
-  };
+    return (
+      gameProgress.find((g) => g.game_type === gameType)?.completed || false
+    )
+  }
 
   if (selectedGame) {
     return (
@@ -38,12 +55,12 @@ const MainGame = ({ userSelection, sessionId, gameProgress, onGameComplete }: Ma
         userSelection={userSelection}
         sessionId={sessionId}
         onGameComplete={() => {
-          onGameComplete(selectedGame);
-          setSelectedGame(null);
+          onGameComplete(selectedGame)
+          setSelectedGame(null)
         }}
         onBack={() => setSelectedGame(null)}
       />
-    );
+    )
   }
 
   return (
@@ -76,7 +93,7 @@ const MainGame = ({ userSelection, sessionId, gameProgress, onGameComplete }: Ma
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default MainGame;
+export default MainGame
