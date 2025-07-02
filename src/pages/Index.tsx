@@ -1,14 +1,51 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { UserName, GameType } from '@/types/game';
+import { useGameSession } from '@/hooks/useGameSession';
+import UserSelection from './UserSelection';
+import WaitingRoom from './WaitingRoom';
+import MainGame from './MainGame';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [userSelection, setUserSelection] = useState<UserName | null>(null);
+  const { 
+    session, 
+    gameProgress, 
+    isConnected, 
+    bothConnected, 
+    loading, 
+    createOrJoinSession, 
+    markGameCompleted 
+  } = useGameSession(userSelection);
+
+  const handleUserSelect = (user: UserName) => {
+    setUserSelection(user);
+    createOrJoinSession();
+  };
+
+  const handleGameComplete = (gameType: GameType) => {
+    markGameCompleted(gameType);
+  };
+
+  if (!userSelection || loading) {
+    return <UserSelection onUserSelect={handleUserSelect} />;
+  }
+
+  if (isConnected && !bothConnected) {
+    return <WaitingRoom userSelection={userSelection} />;
+  }
+
+  if (bothConnected && session) {
+    return (
+      <MainGame
+        userSelection={userSelection}
+        sessionId={session.id}
+        gameProgress={gameProgress}
+        onGameComplete={handleGameComplete}
+      />
+    );
+  }
+
+  return <UserSelection onUserSelect={handleUserSelect} />;
 };
 
 export default Index;

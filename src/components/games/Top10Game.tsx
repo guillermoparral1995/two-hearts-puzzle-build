@@ -1,0 +1,152 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft } from 'lucide-react';
+import { UserName } from '@/types/game';
+import { supabase } from '@/integrations/supabase/client';
+import { gameQuestions } from '@/lib/gameQuestions';
+
+interface Top10GameProps {
+  userSelection: UserName;
+  sessionId: string;
+  onGameComplete: () => void;
+  onBack: () => void;
+}
+
+const Top10Game = ({ userSelection, sessionId, onGameComplete, onBack }: Top10GameProps) => {
+  const [currentRound, setCurrentRound] = useState(1);
+  const [answers, setAnswers] = useState<string[]>(Array(10).fill(''));
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [waitingForOther, setWaitingForOther] = useState(false);
+
+  const currentQuestion = gameQuestions.top10[currentRound - 1];
+
+  useEffect(() => {
+    // Check if other player has submitted this round
+    checkOtherPlayerProgress();
+  }, [currentRound, sessionId]);
+
+  const checkOtherPlayerProgress = async () => {
+    const otherUser = userSelection === 'Guille' ? 'Delfina' : 'Guille';
+    
+    const { data } = await supabase
+      .from('game_responses')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('game_type', 'top10')
+      .eq('user_name', otherUser)
+      .eq('round_number', currentRound);
+
+    if (data && data.length > 0) {
+      // Other player has submitted, we can proceed
+      setWaitingForOther(false);
+    }
+  };
+
+  const handleAnswerChange = (index: number, value: string) => {
+    const newAnswers = [...answers];
+    newAnswers[index] = value;
+    setAnswers(newAnswers);
+  };
+
+  const handleSubmit = async () => {
+    // Save all answers for this round
+    const responses = answers.map((answer, index) => ({
+      session_id: sessionId,
+      game_type: 'top10' as const,
+      user_name: userSelection,
+      round_number: currentRound,
+      question: `${currentQuestion} - Item ${index + 1}`,
+      answer: answer
+    }));
+
+    await supabase
+      .from('game_responses')
+      .insert(responses);
+
+    setIsSubmitted(true);
+    setWaitingForOther(true);
+
+    // Check if both players have submitted
+    setTimeout(async () => {
+      const { data } = await supabase
+        .from('game_responses')
+        .select('user_name')
+        .eq('session_id', sessionId)
+        .eq('game_type', 'top10')
+        .eq('round_number', currentRound);
+
+      const uniqueUsers = new Set(data?.map(r => r.user_name));
+      
+      if (uniqueUsers.size === 2) {
+        // Both players submitted
+        if (currentRound < 3) {
+          setCurrentRound(currentRound + 1);
+          setAnswers(Array(10).fill(''));
+          setIsSubmitted(false);
+          setWaitingForOther(false);
+        } else {
+          onGameComplete();
+        }
+      }
+    }, 1000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" onClick={onBack} className="mr-4">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="text-3xl font-bold text-primary">Top 10 Game</h1>
+        </div>
+
+        <Card className="p-8 shadow-xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-4">Round {currentRound} of 3</h2>
+            <p className="text-lg text-muted-foreground mb-6">{currentQuestion}</p>
+          </div>
+
+          {waitingForOther ? (
+            <div className="text-center">
+              <div className="animate-pulse mb-4">
+                <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
+              </div>
+              <p className="text-lg">Waiting for the other player to finish...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Array.from({ length: 10 }, (_, index) => (
+                <div key={index} className="flex items-center space-x-4">
+                  <span className="text-lg font-medium w-8">{index + 1}.</span>
+                  <Textarea
+                    value={answers[index]}
+                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                    placeholder={`Item ${index + 1}`}
+                    disabled={isSubmitted}
+                    className="flex-1"
+                  />
+                </div>
+              ))}
+              
+              {!isSubmitted && (
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={answers.some(a => a.trim() === '')}
+                  className="w-full mt-6"
+                  size="lg"
+                >
+                  Submit Round {currentRound}
+                </Button>
+              )}
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Top10Game;

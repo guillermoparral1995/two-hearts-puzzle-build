@@ -9,7 +9,153 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      current_game_state: {
+        Row: {
+          current_game: Database["public"]["Enums"]["game_type"] | null
+          current_round: number | null
+          current_turn: Database["public"]["Enums"]["user_name"] | null
+          game_data: Json | null
+          id: string
+          session_id: string
+          updated_at: string
+          waiting_for_players: boolean | null
+        }
+        Insert: {
+          current_game?: Database["public"]["Enums"]["game_type"] | null
+          current_round?: number | null
+          current_turn?: Database["public"]["Enums"]["user_name"] | null
+          game_data?: Json | null
+          id?: string
+          session_id: string
+          updated_at?: string
+          waiting_for_players?: boolean | null
+        }
+        Update: {
+          current_game?: Database["public"]["Enums"]["game_type"] | null
+          current_round?: number | null
+          current_turn?: Database["public"]["Enums"]["user_name"] | null
+          game_data?: Json | null
+          id?: string
+          session_id?: string
+          updated_at?: string
+          waiting_for_players?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "current_game_state_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_progress: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          game_type: Database["public"]["Enums"]["game_type"]
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          game_type: Database["public"]["Enums"]["game_type"]
+          id?: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          game_type?: Database["public"]["Enums"]["game_type"]
+          id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_progress_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_responses: {
+        Row: {
+          answer: string | null
+          created_at: string
+          drawing_data: string | null
+          game_type: Database["public"]["Enums"]["game_type"]
+          id: string
+          question: string | null
+          round_number: number
+          session_id: string
+          user_name: Database["public"]["Enums"]["user_name"]
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          drawing_data?: string | null
+          game_type: Database["public"]["Enums"]["game_type"]
+          id?: string
+          question?: string | null
+          round_number: number
+          session_id: string
+          user_name: Database["public"]["Enums"]["user_name"]
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          drawing_data?: string | null
+          game_type?: Database["public"]["Enums"]["game_type"]
+          id?: string
+          question?: string | null
+          round_number?: number
+          session_id?: string
+          user_name?: Database["public"]["Enums"]["user_name"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_sessions: {
+        Row: {
+          created_at: string
+          delfina_connected: boolean | null
+          guille_connected: boolean | null
+          id: string
+          session_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delfina_connected?: boolean | null
+          guille_connected?: boolean | null
+          id?: string
+          session_code?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delfina_connected?: boolean | null
+          guille_connected?: boolean | null
+          id?: string
+          session_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +164,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      game_type: "top10" | "predict_future" | "drawful" | "would_you_do"
+      user_name: "Guille" | "Delfina"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +280,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      game_type: ["top10", "predict_future", "drawful", "would_you_do"],
+      user_name: ["Guille", "Delfina"],
+    },
   },
 } as const
