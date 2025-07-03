@@ -36,6 +36,7 @@ const DrawfulGame = ({
 
   useEffect(() => {
     const drawfulChannel = supabase.channel(`drawful-${sessionId}`)
+    channelRef.current = drawfulChannel
 
     drawfulChannel
       .on('broadcast', { event: 'start-draw' }, ({ payload: { x, y } }) => {
@@ -79,9 +80,14 @@ const DrawfulGame = ({
         ctx.clearRect(0, 0, canvas.width, canvas.height)
       })
       .on('broadcast', { event: 'submit' }, () => {
-        setIsLocked(true)
-        setShowingPrompt(true)
-        proceedToNextRound()
+        // Only set locked state for drawing player, guessing player already handled it
+        if (isDrawing) {
+          setIsLocked(true)
+          setShowingPrompt(true)
+          setTimeout(() => {
+            proceedToNextRound()
+          }, 3000)
+        }
       })
       .subscribe()
 
@@ -180,17 +186,22 @@ const DrawfulGame = ({
     setShowingPrompt(true)
 
     // Save guess
-    await supabase.from('game_responses').insert({
-      session_id: sessionId,
-      game_type: 'drawful',
-      user_name: userSelection,
-      round_number: currentRound,
-      answer: guess,
-    })
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'submit'
-    })
+    try {
+      await supabase.from('game_responses').insert({
+        session_id: sessionId,
+        game_type: 'drawful',
+        user_name: userSelection,
+        round_number: currentRound,
+        answer: guess,
+      })
+      
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'submit'
+      })
+    } catch (error) {
+      console.error('Error saving guess:', error)
+    }
 
     // Show prompt for 3 seconds, then proceed to next round
     setTimeout(() => {
