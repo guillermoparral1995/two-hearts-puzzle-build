@@ -1,0 +1,12 @@
+{
+  "name": "DelfiGuille",
+  "icons": [
+    {
+      "src": "public/appIcon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "https://two-hearts-puzzle-build.lovable.app/",
+  "display": "fullscreen"
+}
