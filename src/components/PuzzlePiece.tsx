@@ -44,7 +44,7 @@ const PuzzlePiece = ({
 
   return (
     <Card
-      className={`relative overflow-hidden transition-all duration-300 hover:scale-105 ${getPuzzleShape()}`}
+      className={`relative overflow-hidden transition-all duration-300 hover:scale-105`}
     >
       <Button
         onClick={onClick}
@@ -57,13 +57,6 @@ const PuzzlePiece = ({
       >
         {getIcon()}
         <span className="text-sm font-medium text-center px-2">{title}</span>
-        {isCompleted && (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-            <div className="text-6xl font-mono text-white/80">
-              {pieceNumber}
-            </div>
-          </div>
-        )}
       </Button>
     </Card>
   )

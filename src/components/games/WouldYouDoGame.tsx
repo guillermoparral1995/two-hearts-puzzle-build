@@ -119,14 +119,14 @@ const WouldYouDoGame = ({
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <h1 className="text-3xl font-bold text-primary">
-            Would You Do It For Me?
+            Favores
           </h1>
         </div>
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-4">
-              Question {currentRound} of 5
+              Pregunta {currentRound} de 5
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
               {currentQuestion}
@@ -138,7 +138,9 @@ const WouldYouDoGame = ({
               <div className="animate-pulse mb-4">
                 <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
               </div>
-              <p className="text-lg">Waiting for the other player...</p>
+              <p className="text-lg">                
+                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
+              </p>
             </div>
           ) : (
             <div className="flex justify-center space-x-8">

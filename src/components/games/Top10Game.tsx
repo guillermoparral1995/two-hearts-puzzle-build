@@ -112,13 +112,13 @@ const Top10Game = ({
           <Button variant="ghost" onClick={onBack} className="mr-4">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-3xl font-bold text-primary">Top 10 Game</h1>
+          <h1 className="text-3xl font-bold text-primary">Top 10</h1>
         </div>
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-4">
-              Round {currentRound} of 3
+              Ronda {currentRound} de 3
             </h2>
             <p className="text-lg text-muted-foreground mb-6">
               {currentQuestion}
@@ -131,7 +131,7 @@ const Top10Game = ({
                 <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
               </div>
               <p className="text-lg">
-                Waiting for the other player to finish...
+                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
               </p>
             </div>
           ) : (
@@ -156,7 +156,7 @@ const Top10Game = ({
                   className="w-full mt-6"
                   size="lg"
                 >
-                  Submit Round {currentRound}
+                  Enviar ronda {currentRound}
                 </Button>
               )}
             </div>

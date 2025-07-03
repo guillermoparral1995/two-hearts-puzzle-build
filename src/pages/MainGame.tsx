@@ -34,11 +34,11 @@ const MainGame = ({
     case 'top10':
       return 'Top 10'
     case 'predict_future':
-      return 'Predict the Future'
+      return 'Predecí el futuro'
     case 'drawful':
-      return 'Drawful'
+      return 'Pictionary'
     case 'would_you_do':
-      return 'Would You Do It?'
+      return 'Favores'
     }
   }
 
@@ -68,10 +68,10 @@ const MainGame = ({
       <div className="max-w-4xl mx-auto">
         <Card className="p-8 mb-8 text-center shadow-xl">
           <h1 className="text-4xl font-bold mb-4 text-primary">
-            Anniversary Puzzle 💕
+            Miau miau te amo hermoso bebito 😸❤️
           </h1>
           <p className="text-lg text-muted-foreground">
-            Complete all mini-games to reveal your special surprise!
+            Completá los minijuegos para una sorpresa!
           </p>
         </Card>
 

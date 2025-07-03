@@ -10,7 +10,7 @@ const UserSelection = ({ onUserSelect }: UserSelectionProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-accent p-4">
       <Card className="w-full max-w-md p-8 text-center shadow-xl">
-        <h1 className="text-4xl font-bold mb-8 text-primary">Who are you?</h1>
+        <h1 className="text-4xl font-bold mb-8 text-primary">Quién sos?</h1>
         <div className="space-y-4">
           <Button
             onClick={() => onUserSelect('Guille')}

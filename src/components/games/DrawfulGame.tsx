@@ -97,9 +97,7 @@ const DrawfulGame = ({
   }, [sessionId, isDrawing, currentRound])
 
   const determineRoundType = () => {
-    // Guille draws on rounds 1,2,3 and guesses on 4,5,6
-    // Delfina guesses on rounds 1,2,3 and draws on 4,5,6
-    const shouldGuilleDrawThisRound = currentRound <= 3
+    const shouldGuilleDrawThisRound = currentRound % 2 === 0
     const shouldDraw = userSelection === 'Guille' ? shouldGuilleDrawThisRound : !shouldGuilleDrawThisRound
     setIsDrawing(shouldDraw)
 

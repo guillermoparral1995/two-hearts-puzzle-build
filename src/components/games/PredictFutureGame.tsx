@@ -101,14 +101,14 @@ const PredictFutureGame = ({
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <h1 className="text-3xl font-bold text-primary">
-                        Predict the Future
+                        Predecí el futuro
           </h1>
         </div>
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-4">
-                            Round {currentRound} of 3
+                            Ronda {currentRound} de 3
             </h2>
             <p className="text-lg text-muted-foreground mb-6">
               {currentQuestion}
@@ -121,7 +121,7 @@ const PredictFutureGame = ({
                 <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
               </div>
               <p className="text-lg">
-                                Waiting for the other player to finish...
+                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
               </p>
             </div>
           ) : (
@@ -141,7 +141,7 @@ const PredictFutureGame = ({
                   className="w-full"
                   size="lg"
                 >
-                                    Submit Answer
+                                    Enviar respuesta
                 </Button>
               )}
             </div>
