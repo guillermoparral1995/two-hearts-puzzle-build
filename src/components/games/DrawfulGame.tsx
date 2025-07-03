@@ -79,9 +79,9 @@ const DrawfulGame = ({
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
       })
-      .on('broadcast', { event: 'submit' }, () => {
-        // Only set locked state for drawing player, guessing player already handled it
-        if (isDrawing) {
+      .on('broadcast', { event: 'submit' }, ({ payload: { round } }) => {
+        // Only process if this is for the current round and we're the drawing player
+        if (round === currentRound && isDrawing) {
           setIsLocked(true)
           setShowingPrompt(true)
           setTimeout(() => {
@@ -94,17 +94,17 @@ const DrawfulGame = ({
     return () => {
       supabase.removeChannel(drawfulChannel)
     }
-  }, [sessionId, isDrawing])
+  }, [sessionId, isDrawing, currentRound])
 
   const determineRoundType = () => {
     // Guille draws on rounds 1,2,3 and guesses on 4,5,6
     // Delfina guesses on rounds 1,2,3 and draws on 4,5,6
-    const guilleDraw = currentRound <= 3
-    const shouldDraw = userSelection === 'Guille' ? guilleDraw : !guilleDraw
+    const shouldGuilleDrawThisRound = currentRound <= 3
+    const shouldDraw = userSelection === 'Guille' ? shouldGuilleDrawThisRound : !shouldGuilleDrawThisRound
     setIsDrawing(shouldDraw)
 
-    // Set prompt for both players so it can be shown during reveal
-    const promptIndex = Math.floor((currentRound - 1) % 3)
+    // Set prompt for the current round
+    const promptIndex = ((currentRound - 1) % 3)
     setCurrentPrompt(gameQuestions.drawful[promptIndex])
     setShowingPrompt(false)
     setIsLocked(false)
@@ -195,9 +195,11 @@ const DrawfulGame = ({
         answer: guess,
       })
       
+      // Send broadcast with current round info
       channelRef.current.send({
         type: 'broadcast',
-        event: 'submit'
+        event: 'submit',
+        payload: { round: currentRound }
       })
     } catch (error) {
       console.error('Error saving guess:', error)
@@ -218,6 +220,7 @@ const DrawfulGame = ({
       onGameComplete()
     }
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
       <div className="max-w-4xl mx-auto">
