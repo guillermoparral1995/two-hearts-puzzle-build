@@ -28,6 +28,8 @@ const DrawfulGame = ({
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState(120)
   const [waitingForOther, setWaitingForOther] = useState(false)
+  const [showingPrompt, setShowingPrompt] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
   const channelRef = useRef(supabase.channel(`drawful-${sessionId}`))
@@ -38,7 +40,7 @@ const DrawfulGame = ({
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
       return () => clearTimeout(timer)
     } else if (timeLeft === 0 && !isSubmitted) {
-      handleSubmit()
+      handleTimerEnd()
     }
   }, [currentRound, timeLeft, isSubmitted])
 
@@ -102,14 +104,15 @@ const DrawfulGame = ({
     const shouldDraw = userSelection === 'Guille' ? guilleDraw : !guilleDraw
     setIsDrawing(shouldDraw)
 
-    if (shouldDraw) {
-      const promptIndex = Math.floor((currentRound - 1) % 3)
-      setCurrentPrompt(gameQuestions.drawful[promptIndex])
-    }
+    // Set prompt for both players so it can be shown during reveal
+    const promptIndex = Math.floor((currentRound - 1) % 3)
+    setCurrentPrompt(gameQuestions.drawful[promptIndex])
 
     setTimeLeft(120)
     setIsSubmitted(false)
     setWaitingForOther(false)
+    setShowingPrompt(false)
+    setIsLocked(false)
   }
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -183,49 +186,49 @@ const DrawfulGame = ({
   }
 
   const handleSubmit = async () => {
-    if (isDrawing) {
-      await supabase.from('game_responses').insert({
-        session_id: sessionId,
-        game_type: 'drawful',
-        user_name: userSelection,
-        round_number: currentRound,
-        question: currentPrompt,
-        drawing_data: drawingData,
-      })
-    } else {
-      await supabase.from('game_responses').insert({
-        session_id: sessionId,
-        game_type: 'drawful',
-        user_name: userSelection,
-        round_number: currentRound,
-        answer: guess,
-      })
-    }
-
+    // Only guessing player can submit
+    if (isDrawing) return
+    
     setIsSubmitted(true)
-    setWaitingForOther(true)
+    setIsLocked(true)
+    setShowingPrompt(true)
 
-    // Check if both players have submitted
-    setTimeout(async () => {
-      const { data } = await supabase
-        .from('game_responses')
-        .select('user_name')
-        .eq('session_id', sessionId)
-        .eq('game_type', 'drawful')
-        .eq('round_number', currentRound)
+    // Save guess
+    await supabase.from('game_responses').insert({
+      session_id: sessionId,
+      game_type: 'drawful',
+      user_name: userSelection,
+      round_number: currentRound,
+      answer: guess,
+    })
 
-      const uniqueUsers = new Set(data?.map((r) => r.user_name))
+    // Show prompt for 3 seconds, then proceed to next round
+    setTimeout(() => {
+      proceedToNextRound()
+    }, 3000)
+  }
 
-      if (uniqueUsers.size === 2) {
-        if (currentRound < 6) {
-          setCurrentRound(currentRound + 1)
-          setGuess('')
-          clearCanvas()
-        } else {
-          onGameComplete()
-        }
-      }
-    }, 1000)
+  const handleTimerEnd = () => {
+    if (isSubmitted) return
+    
+    setIsSubmitted(true)
+    setIsLocked(true)
+    setShowingPrompt(true)
+
+    // Show prompt for 3 seconds, then proceed to next round
+    setTimeout(() => {
+      proceedToNextRound()
+    }, 3000)
+  }
+
+  const proceedToNextRound = () => {
+    if (currentRound < 6) {
+      setCurrentRound(currentRound + 1)
+      setGuess('')
+      clearCanvas()
+    } else {
+      onGameComplete()
+    }
   }
 
   const formatTime = (seconds: number) => {
@@ -254,12 +257,20 @@ const DrawfulGame = ({
             </p>
           </div>
 
-          {waitingForOther ? (
+          {showingPrompt ? (
             <div className="text-center">
-              <div className="animate-pulse mb-4">
-                <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
+              <div className="mb-6">
+                <p className="text-2xl font-bold text-primary mb-4">The drawing was:</p>
+                <p className="text-3xl font-bold">{currentPrompt}</p>
               </div>
-              <p className="text-lg">Waiting for the other player...</p>
+              <div className="flex justify-center">
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={300}
+                  className="border-2 border-border rounded-lg bg-white"
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
@@ -285,27 +296,21 @@ const DrawfulGame = ({
                   width={400}
                   height={300}
                   className={`border-2 border-border rounded-lg bg-white ${
-                    isDrawing ? 'cursor-crosshair' : 'cursor-default'
+                    isDrawing && !isLocked ? 'cursor-crosshair' : 'cursor-default'
                   }`}
-                  onMouseDown={isDrawing ? startDrawing : undefined}
-                  onMouseMove={isDrawing ? draw : undefined}
-                  onMouseUp={isDrawing ? stopDrawing : undefined}
-                  onMouseLeave={isDrawing ? stopDrawing : undefined}
+                  onMouseDown={isDrawing && !isLocked ? startDrawing : undefined}
+                  onMouseMove={isDrawing && !isLocked ? draw : undefined}
+                  onMouseUp={isDrawing && !isLocked ? stopDrawing : undefined}
+                  onMouseLeave={isDrawing && !isLocked ? stopDrawing : undefined}
                 />
               </div>
 
-              {isDrawing && (
+              {isDrawing && !isLocked && (
                 <div className="flex justify-center space-x-4">
                   <Button variant="outline" onClick={clearCanvas}>
                     <Eraser className="w-4 h-4 mr-2" />
                     Clear
                   </Button>
-                  {!isSubmitted && (
-                    <Button onClick={handleSubmit}>
-                      <Palette className="w-4 h-4 mr-2" />
-                      Submit Drawing
-                    </Button>
-                  )}
                 </div>
               )}
 
@@ -315,11 +320,11 @@ const DrawfulGame = ({
                     value={guess}
                     onChange={(e) => setGuess(e.target.value)}
                     placeholder="Enter your guess..."
-                    disabled={isSubmitted}
+                    disabled={isLocked}
                     className="text-center text-lg"
                   />
 
-                  {!isSubmitted && (
+                  {!isLocked && (
                     <Button
                       onClick={handleSubmit}
                       disabled={guess.trim() === ''}
