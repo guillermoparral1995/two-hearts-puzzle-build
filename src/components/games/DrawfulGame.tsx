@@ -109,7 +109,7 @@ const DrawfulGame = ({
     setIsDrawing(shouldDraw)
 
     // Set prompt for the current round
-    const promptIndex = ((currentRound - 1) % 3)
+    const promptIndex = currentRound - 1
     setCurrentPrompt(gameQuestions.drawful[promptIndex])
     setShowingPrompt(false)
     setIsLocked(false)
