@@ -14,6 +14,13 @@ interface DrawfulGameProps {
   onBack: () => void
 }
 
+type TouchEvent = React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+
+const isMouseEvent = (e: TouchEvent): e is React.MouseEvent<HTMLCanvasElement> => {
+  return 'clientX' in e
+}
+
+
 const DrawfulGame = ({
   userSelection,
   sessionId,
@@ -108,14 +115,16 @@ const DrawfulGame = ({
     setIsLocked(false)
   }
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: TouchEvent) => {
     isDrawingRef.current = true
     const canvas = canvasRef.current
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const clientX = isMouseEvent(e) ? e.clientX : e.targetTouches.item(0).clientX
+    const clientY = isMouseEvent(e) ? e.clientY : e.targetTouches.item(0).clientY
+    const x = clientX - rect.left
+    const y = clientY - rect.top
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -129,15 +138,17 @@ const DrawfulGame = ({
     })
   }
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: TouchEvent) => {
     if (!isDrawingRef.current) return
 
     const canvas = canvasRef.current
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const clientX = isMouseEvent(e) ? e.clientX : e.targetTouches.item(0).clientX
+    const clientY = isMouseEvent(e) ? e.clientY : e.targetTouches.item(0).clientY
+    const x = clientX - rect.left
+    const y = clientY - rect.top
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -226,20 +237,20 @@ const DrawfulGame = ({
           <Button variant="ghost" onClick={onBack} className="mr-4">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-3xl font-bold text-primary">Drawful</h1>
+          <h1 className="text-3xl font-bold text-primary">Pictionary</h1>
         </div>
 
         <Card className="p-8 shadow-xl">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold mb-2">
-                            Round {currentRound} of 6
+                            Ronda {currentRound} de 6
             </h2>
           </div>
 
           {showingPrompt ? (
             <div className="text-center">
               <div className="mb-6">
-                <p className="text-2xl font-bold text-primary mb-4">The drawing was:</p>
+                <p className="text-2xl font-bold text-primary mb-4">El dibujo era:</p>
                 <p className="text-3xl font-bold">{currentPrompt}</p>
               </div>
               <div className="flex justify-center">
@@ -256,7 +267,7 @@ const DrawfulGame = ({
               {isDrawing && (
                 <div className="text-center">
                   <p className="text-lg mb-4">
-                    Draw: <strong>{currentPrompt}</strong>
+                    Dibujá: <strong>{currentPrompt}</strong>
                   </p>
                 </div>
               )}
@@ -264,7 +275,7 @@ const DrawfulGame = ({
               {!isDrawing && (
                 <div className="text-center">
                   <p className="text-lg mb-4">
-                    Watch the other player draw and guess what it is!
+                    Tratá de adivinar!
                   </p>
                 </div>
               )}
@@ -277,8 +288,11 @@ const DrawfulGame = ({
                   className={`border-2 border-border rounded-lg bg-white ${
                     isDrawing && !isLocked ? 'cursor-crosshair' : 'cursor-default'
                   }`}
+                  onTouchStart={isDrawing && !isLocked ? startDrawing : undefined}
                   onMouseDown={isDrawing && !isLocked ? startDrawing : undefined}
+                  onTouchMove={isDrawing && !isLocked ? draw : undefined}
                   onMouseMove={isDrawing && !isLocked ? draw : undefined}
+                  onTouchEnd={isDrawing && !isLocked ? stopDrawing : undefined}
                   onMouseUp={isDrawing && !isLocked ? stopDrawing : undefined}
                   onMouseLeave={isDrawing && !isLocked ? stopDrawing : undefined}
                 />
@@ -288,7 +302,7 @@ const DrawfulGame = ({
                 <div className="flex justify-center space-x-4">
                   <Button variant="outline" onClick={clearCanvas}>
                     <Eraser className="w-4 h-4 mr-2" />
-                    Clear
+                    Borrar
                   </Button>
                 </div>
               )}
@@ -298,7 +312,7 @@ const DrawfulGame = ({
                   <Input
                     value={guess}
                     onChange={(e) => setGuess(e.target.value)}
-                    placeholder="Enter your guess..."
+                    placeholder="Poné lo que pensás que es..."
                     disabled={isLocked}
                     className="text-center text-lg"
                   />
@@ -310,7 +324,7 @@ const DrawfulGame = ({
                       className="w-full"
                       size="lg"
                     >
-                      Submit Guess
+                      Enviar
                     </Button>
                   )}
                 </div>
