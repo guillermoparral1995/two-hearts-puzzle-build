@@ -24,10 +24,6 @@ const DrawfulGame = ({
   const [isDrawing, setIsDrawing] = useState(true)
   const [guess, setGuess] = useState('')
   const [currentPrompt, setCurrentPrompt] = useState('')
-  const [drawingData, setDrawingData] = useState('')
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(120)
-  const [waitingForOther, setWaitingForOther] = useState(false)
   const [showingPrompt, setShowingPrompt] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -36,13 +32,7 @@ const DrawfulGame = ({
 
   useEffect(() => {
     determineRoundType()
-    if (timeLeft > 0 && !isSubmitted) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-      return () => clearTimeout(timer)
-    } else if (timeLeft === 0 && !isSubmitted) {
-      handleTimerEnd()
-    }
-  }, [currentRound, timeLeft, isSubmitted])
+  }, [currentRound])
 
   useEffect(() => {
     const drawfulChannel = supabase.channel(`drawful-${sessionId}`)
@@ -78,7 +68,6 @@ const DrawfulGame = ({
         const canvas = canvasRef.current
         if (!canvas) return
         
-        setDrawingData(canvas.toDataURL())
       })
       .on('broadcast', { event: 'clear' }, () => {
         const canvas = canvasRef.current
@@ -88,7 +77,11 @@ const DrawfulGame = ({
         if (!ctx) return
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
-        setDrawingData('')
+      })
+      .on('broadcast', { event: 'submit' }, () => {
+        setIsLocked(true)
+        setShowingPrompt(true)
+        proceedToNextRound()
       })
       .subscribe()
 
@@ -107,10 +100,6 @@ const DrawfulGame = ({
     // Set prompt for both players so it can be shown during reveal
     const promptIndex = Math.floor((currentRound - 1) % 3)
     setCurrentPrompt(gameQuestions.drawful[promptIndex])
-
-    setTimeLeft(120)
-    setIsSubmitted(false)
-    setWaitingForOther(false)
     setShowingPrompt(false)
     setIsLocked(false)
   }
@@ -163,7 +152,6 @@ const DrawfulGame = ({
     const canvas = canvasRef.current
     if (!canvas) return
 
-    setDrawingData(canvas.toDataURL())
     channelRef.current.send({
       type: 'broadcast',
       event: 'stop-draw',
@@ -178,7 +166,6 @@ const DrawfulGame = ({
     if (!ctx) return
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    setDrawingData('')
     channelRef.current.send({
       type: 'broadcast',
       event: 'clear',
@@ -189,7 +176,6 @@ const DrawfulGame = ({
     // Only guessing player can submit
     if (isDrawing) return
     
-    setIsSubmitted(true)
     setIsLocked(true)
     setShowingPrompt(true)
 
@@ -201,19 +187,10 @@ const DrawfulGame = ({
       round_number: currentRound,
       answer: guess,
     })
-
-    // Show prompt for 3 seconds, then proceed to next round
-    setTimeout(() => {
-      proceedToNextRound()
-    }, 3000)
-  }
-
-  const handleTimerEnd = () => {
-    if (isSubmitted) return
-    
-    setIsSubmitted(true)
-    setIsLocked(true)
-    setShowingPrompt(true)
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'submit'
+    })
 
     // Show prompt for 3 seconds, then proceed to next round
     setTimeout(() => {
@@ -230,13 +207,6 @@ const DrawfulGame = ({
       onGameComplete()
     }
   }
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
       <div className="max-w-4xl mx-auto">
@@ -252,9 +222,6 @@ const DrawfulGame = ({
             <h2 className="text-2xl font-bold mb-2">
                             Round {currentRound} of 6
             </h2>
-            <p className="text-lg font-semibold text-primary">
-              {formatTime(timeLeft)}
-            </p>
           </div>
 
           {showingPrompt ? (
