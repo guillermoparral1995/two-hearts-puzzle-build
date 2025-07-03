@@ -2,7 +2,7 @@
   "name": "DelfiGuille",
   "icons": [
     {
-      "src": "public/appIcon.png",
+      "src": "appIcon.png",
       "type": "image/png",
       "sizes": "512x512"
     }
