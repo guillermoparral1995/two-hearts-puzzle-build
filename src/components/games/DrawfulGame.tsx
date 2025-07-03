@@ -28,10 +28,9 @@ const DrawfulGame = ({
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState(120)
   const [waitingForOther, setWaitingForOther] = useState(false)
-  const drawfulChannel = supabase.channel('drawful')
-
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
+  const channelRef = useRef(supabase.channel(`drawful-${sessionId}`))
 
   useEffect(() => {
     determineRoundType()
@@ -43,13 +42,67 @@ const DrawfulGame = ({
     }
   }, [currentRound, timeLeft, isSubmitted])
 
+  useEffect(() => {
+    const drawfulChannel = supabase.channel(`drawful-${sessionId}`)
+
+    drawfulChannel
+      .on('broadcast', { event: 'start-draw' }, ({ payload: { x, y } }) => {
+        if (isDrawing) return // Don't apply remote drawing if we're the one drawing
+        
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+      })
+      .on('broadcast', { event: 'draw' }, ({ payload: { x, y } }) => {
+        if (isDrawing) return // Don't apply remote drawing if we're the one drawing
+        
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        ctx.lineTo(x, y)
+        ctx.stroke()
+      })
+      .on('broadcast', { event: 'stop-draw' }, () => {
+        if (isDrawing) return // Don't apply remote drawing if we're the one drawing
+        
+        const canvas = canvasRef.current
+        if (!canvas) return
+        
+        setDrawingData(canvas.toDataURL())
+      })
+      .on('broadcast', { event: 'clear' }, () => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        setDrawingData('')
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(drawfulChannel)
+    }
+  }, [sessionId, isDrawing])
+
   const determineRoundType = () => {
     // Guille draws on rounds 1,2,3 and guesses on 4,5,6
     // Delfina guesses on rounds 1,2,3 and draws on 4,5,6
     const guilleDraw = currentRound <= 3
-    setIsDrawing(userSelection === 'Guille' ? guilleDraw : !guilleDraw)
+    const shouldDraw = userSelection === 'Guille' ? guilleDraw : !guilleDraw
+    setIsDrawing(shouldDraw)
 
-    if (isDrawing) {
+    if (shouldDraw) {
       const promptIndex = Math.floor((currentRound - 1) % 3)
       setCurrentPrompt(gameQuestions.drawful[promptIndex])
     }
@@ -58,68 +111,6 @@ const DrawfulGame = ({
     setIsSubmitted(false)
     setWaitingForOther(false)
   }
-
-  drawfulChannel
-    .on('broadcast', { event: 'start-draw' }, ({ x, y }) => {
-      console.log('start draw')
-      isDrawingRef.current = true
-      const canvas = canvasRef.current
-      console.log('canvas')
-      if (!canvas) return
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-      console.log('ctx')
-
-      ctx.beginPath()
-      ctx.moveTo(x, y)
-    })
-    .subscribe()
-
-  drawfulChannel
-    .on('broadcast', { event: 'draw' }, ({ x, y }) => {
-      console.log('draw')
-      if (!isDrawingRef.current) return
-      console.log('!isDrawingref')
-
-      const canvas = canvasRef.current
-      console.log('canvas')
-      if (!canvas) return
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-      console.log('ctx')
-
-      ctx.lineTo(x, y)
-      ctx.stroke()
-    })
-    .subscribe()
-
-  drawfulChannel
-    .on('broadcast', { event: 'stop-draw' }, () => {
-      console.log('stop draw')
-      isDrawingRef.current = false
-      const canvas = canvasRef.current
-      if (!canvas) return
-      console.log('canvas', canvas.toDataURL())
-
-      setDrawingData(canvas.toDataURL())
-    })
-    .subscribe()
-
-  drawfulChannel
-    .on('broadcast', { event: 'clear' }, () => {
-      console.log('clear')
-      const canvas = canvasRef.current
-      if (!canvas) return
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      setDrawingData('')
-    })
-    .subscribe()
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     isDrawingRef.current = true
@@ -135,7 +126,7 @@ const DrawfulGame = ({
 
     ctx.beginPath()
     ctx.moveTo(x, y)
-    drawfulChannel.send({
+    channelRef.current.send({
       type: 'broadcast',
       event: 'start-draw',
       payload: { x, y },
@@ -157,7 +148,7 @@ const DrawfulGame = ({
 
     ctx.lineTo(x, y)
     ctx.stroke()
-    drawfulChannel.send({
+    channelRef.current.send({
       type: 'broadcast',
       event: 'draw',
       payload: { x, y },
@@ -170,7 +161,7 @@ const DrawfulGame = ({
     if (!canvas) return
 
     setDrawingData(canvas.toDataURL())
-    drawfulChannel.send({
+    channelRef.current.send({
       type: 'broadcast',
       event: 'stop-draw',
     })
@@ -185,7 +176,7 @@ const DrawfulGame = ({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     setDrawingData('')
-    drawfulChannel.send({
+    channelRef.current.send({
       type: 'broadcast',
       event: 'clear',
     })
@@ -268,78 +259,80 @@ const DrawfulGame = ({
               <div className="animate-pulse mb-4">
                 <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
               </div>
-              <p className="text-lg">
-                                The other player is drawing...
-              </p>
+              <p className="text-lg">Waiting for the other player...</p>
             </div>
-          ) : null}
-          <div className="space-y-6">
-            <div className="text-center">
-              <p className="text-lg mb-4">
-                                Draw: <strong>{currentPrompt}</strong>
-              </p>
-            </div>
-
-            <div className="flex justify-center">
-              <canvas
-                ref={canvasRef}
-                width={400}
-                height={300}
-                className="border-2 border-border rounded-lg bg-white cursor-crosshair"
-                onMouseDown={
-                  isDrawing ? startDrawing : undefined
-                }
-                onMouseMove={isDrawing ? draw : undefined}
-                onMouseUp={isDrawing ? stopDrawing : undefined}
-                onMouseLeave={
-                  isDrawing ? stopDrawing : undefined
-                }
-              />
-            </div>
-
-            {isDrawing ? (
-              <div className="flex justify-center space-x-4">
-                <Button variant="outline" onClick={clearCanvas}>
-                  <Eraser className="w-4 h-4 mr-2" />
-                                    Clear
-                </Button>
-                {!isSubmitted && (
-                  <Button onClick={handleSubmit}>
-                    <Palette className="w-4 h-4 mr-2" />
-                                        Submit Drawing
-                  </Button>
-                )}
-              </div>
-            ) : null}
-          </div>
-          {!isDrawing ? (
+          ) : (
             <div className="space-y-6">
-              <div className="text-center">
-                <p className="text-lg mb-4">
-                                    What do you think the other person drew?
-                </p>
+              {isDrawing && (
+                <div className="text-center">
+                  <p className="text-lg mb-4">
+                    Draw: <strong>{currentPrompt}</strong>
+                  </p>
+                </div>
+              )}
+
+              {!isDrawing && (
+                <div className="text-center">
+                  <p className="text-lg mb-4">
+                    Watch the other player draw and guess what it is!
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={300}
+                  className={`border-2 border-border rounded-lg bg-white ${
+                    isDrawing ? 'cursor-crosshair' : 'cursor-default'
+                  }`}
+                  onMouseDown={isDrawing ? startDrawing : undefined}
+                  onMouseMove={isDrawing ? draw : undefined}
+                  onMouseUp={isDrawing ? stopDrawing : undefined}
+                  onMouseLeave={isDrawing ? stopDrawing : undefined}
+                />
               </div>
 
-              <Input
-                value={guess}
-                onChange={(e) => setGuess(e.target.value)}
-                placeholder="Enter your guess..."
-                disabled={isSubmitted}
-                className="text-center text-lg"
-              />
+              {isDrawing && (
+                <div className="flex justify-center space-x-4">
+                  <Button variant="outline" onClick={clearCanvas}>
+                    <Eraser className="w-4 h-4 mr-2" />
+                    Clear
+                  </Button>
+                  {!isSubmitted && (
+                    <Button onClick={handleSubmit}>
+                      <Palette className="w-4 h-4 mr-2" />
+                      Submit Drawing
+                    </Button>
+                  )}
+                </div>
+              )}
 
-              {!isSubmitted && (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={guess.trim() === ''}
-                  className="w-full"
-                  size="lg"
-                >
-                                    Submit Guess
-                </Button>
+              {!isDrawing && (
+                <div className="space-y-4">
+                  <Input
+                    value={guess}
+                    onChange={(e) => setGuess(e.target.value)}
+                    placeholder="Enter your guess..."
+                    disabled={isSubmitted}
+                    className="text-center text-lg"
+                  />
+
+                  {!isSubmitted && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={guess.trim() === ''}
+                      className="w-full"
+                      size="lg"
+                    >
+                      Submit Guess
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
-          ) : null}
+          )}
         </Card>
       </div>
     </div>
