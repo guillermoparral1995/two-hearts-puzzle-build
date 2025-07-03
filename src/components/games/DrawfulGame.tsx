@@ -285,7 +285,7 @@ const DrawfulGame = ({
                   ref={canvasRef}
                   width={400}
                   height={300}
-                  className={`border-2 border-border rounded-lg bg-white ${
+                  className={`border-2 border-border rounded-lg bg-white touch-none ${
                     isDrawing && !isLocked ? 'cursor-crosshair' : 'cursor-default'
                   }`}
                   onTouchStart={isDrawing && !isLocked ? startDrawing : undefined}
@@ -312,7 +312,7 @@ const DrawfulGame = ({
                   <Input
                     value={guess}
                     onChange={(e) => setGuess(e.target.value)}
-                    placeholder="Poné lo que pensás que es..."
+                    placeholder="Tu respuesta"
                     disabled={isLocked}
                     className="text-center text-lg"
                   />

@@ -85,7 +85,6 @@ const MainGame = ({
                 gameType={gameType}
                 title={getGameTitle(gameType)}
                 isCompleted={isGameCompleted(gameType)}
-                pieceNumber={index + 1}
                 onClick={() => setSelectedGame(gameType)}
               />
             ))}
