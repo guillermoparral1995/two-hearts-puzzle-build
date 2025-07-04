@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { UserName, GameType } from '@/types/game'
 import { useGameSession } from '@/hooks/useGameSession'
 import UserSelection from './UserSelection'
@@ -7,6 +7,7 @@ import MainGame from './MainGame'
 
 const Index = () => {
   const [userSelection, setUserSelection] = useState<UserName | null>(null)
+  console.log('userSelectin')
   const {
     session,
     gameProgress,
@@ -17,9 +18,14 @@ const Index = () => {
     markGameCompleted,
   } = useGameSession(userSelection)
 
+  useEffect(() => {
+    if(userSelection) {
+      createOrJoinSession()
+    }
+  }, [userSelection])
+
   const handleUserSelect = (user: UserName) => {
     setUserSelection(user)
-    createOrJoinSession()
   }
 
   const handleGameComplete = (gameType: GameType) => {

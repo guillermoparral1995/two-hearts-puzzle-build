@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UserName, GameType } from '@/types/game'
@@ -30,6 +30,26 @@ const RoundResults = ({
   const [responses, setResponses] = useState<GameResponse[]>([])
   const [waitingForOther, setWaitingForOther] = useState(false)
   const [hasClickedNext, setHasClickedNext] = useState(false)
+  const [otherPlayerReady, setOtherPlayerReady] = useState(false)
+  const channelRef = useRef(supabase.channel(`drawful-${sessionId}`))
+
+  useEffect(() => {
+    const drawfulChannel = supabase.channel(`drawful-${sessionId}`)
+    channelRef.current = drawfulChannel
+
+    drawfulChannel
+      .on('broadcast', { event: 'finished' }, ({ payload: { user } }) => {
+        if(user === userSelection) return;
+
+        setOtherPlayerReady(true)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(drawfulChannel)
+    }
+  }, [sessionId, currentRound])
+
 
   useEffect(() => {
     fetchRoundResponses()
@@ -37,32 +57,44 @@ const RoundResults = ({
 
   useEffect(() => {
     if (hasClickedNext) {
-      // Check if both players have clicked next
-      const interval = setInterval(async () => {
-        const { data } = await supabase
-          .from('game_responses')
-          .select('user_name')
-          .eq('session_id', sessionId)
-          .eq('game_type', gameType)
-          .eq('round_number', currentRound + 100)
-
-        const uniqueUsers = new Set(data?.map((r) => r.user_name))
-        if (uniqueUsers.size === 2) {
-          // Clean up the next round markers
-          await supabase
-            .from('game_responses')
-            .delete()
-            .eq('session_id', sessionId)
-            .eq('game_type', gameType)
-            .eq('round_number', currentRound + 100)
-
-          onNextRound()
-        }
-      }, 1000)
-
-      return () => clearInterval(interval)
+      if(otherPlayerReady) {
+        onNextRound()
+      } else {
+        setWaitingForOther(true)
+      }
     }
-  }, [hasClickedNext])
+  }, [hasClickedNext, otherPlayerReady])
+
+  // useEffect(() => {
+  //   let intervalId
+  //   if (hasClickedNext) {
+  //     // Check if both players have clicked next
+  //     intervalId = setInterval(async () => {
+  //       const { data } = await supabase
+  //         .from('game_responses')
+  //         .select('user_name')
+  //         .eq('session_id', sessionId)
+  //         .eq('game_type', gameType)
+  //         .eq('round_number', currentRound + 100)
+
+  //       const uniqueUsers = new Set(data?.map((r) => r.user_name))
+  //       if (uniqueUsers.size === 2) {
+  //         // Clean up the next round markers
+  //         await supabase
+  //           .from('game_responses')
+  //           .delete()
+  //           .eq('session_id', sessionId)
+  //           .eq('game_type', gameType)
+  //           .eq('round_number', currentRound + 100)
+
+  //         onNextRound()
+  //       }
+  //     }, 1000)
+
+  //   }
+  //   return () => clearInterval(intervalId)
+
+  // }, [hasClickedNext])
 
   const fetchRoundResponses = async () => {
     const { data } = await supabase
@@ -90,7 +122,7 @@ const RoundResults = ({
     })
 
     setHasClickedNext(true)
-    setWaitingForOther(true)
+    channelRef.current.send({type: 'broadcast', event: 'finished', payload: { user: userSelection }})
   }
 
   const guilleResponses = responses.filter(r => r.user_name === 'Guille')
@@ -103,7 +135,7 @@ const RoundResults = ({
           Resultados Ronda {currentRound}
         </h2>
         <p className="text-muted-foreground">
-          Mirá las respuestas de ambos jugadores
+          Estas son sus respuestas
         </p>
       </div>
 

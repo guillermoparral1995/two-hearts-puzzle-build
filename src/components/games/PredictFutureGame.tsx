@@ -148,7 +148,7 @@ const PredictFutureGame = ({
                   <Textarea
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Share your thoughts about the future..."
+                    placeholder="Escribí lo que pensás..."
                     disabled={isSubmitted}
                     className="min-h-32"
                   />

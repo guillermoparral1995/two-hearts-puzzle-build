@@ -21,7 +21,7 @@ const QRCodeDisplay = () => {
 
       {/* QR Code placeholder - in a real app, this would be generated */}
       <div className="w-48 h-48 mx-auto mb-6 bg-gradient-to-br from-primary to-accent flex items-center justify-center rounded-lg">
-        <img src="../../public/frame.png"/>
+        <img src="/frame.png"/>
       </div>
 
       <p className="text-sm text-muted-foreground mb-4">

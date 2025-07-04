@@ -73,7 +73,7 @@ const WouldYouDoGame = ({
     }
   }
 
-  const handleAnswer = async (answer: 'yes' | 'no') => {
+  const handleAnswer = async (answer: 'Sí' | 'No') => {
     await supabase.from('game_responses').insert({
       session_id: sessionId,
       game_type: 'would_you_do',
@@ -142,17 +142,17 @@ const WouldYouDoGame = ({
               ) : (
                 <div className="flex justify-center space-x-8">
                   <Button
-                    onClick={() => handleAnswer('yes')}
+                    onClick={() => handleAnswer('Sí')}
                     disabled={isSubmitted}
                     size="lg"
                     className="w-32 h-32 rounded-full bg-green-500 hover:bg-green-600 text-white flex flex-col items-center justify-center space-y-2"
                   >
                     <Heart className="w-8 h-8" />
-                    <span className="text-lg font-bold">YES</span>
+                    <span className="text-lg font-bold">SI</span>
                   </Button>
 
                   <Button
-                    onClick={() => handleAnswer('no')}
+                    onClick={() => handleAnswer('No')}
                     disabled={isSubmitted}
                     size="lg"
                     className="w-32 h-32 rounded-full bg-red-500 hover:bg-red-600 text-white flex flex-col items-center justify-center space-y-2"
