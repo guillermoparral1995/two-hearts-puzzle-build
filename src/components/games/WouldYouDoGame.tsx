@@ -5,6 +5,7 @@ import { ArrowLeft, Heart, X } from 'lucide-react'
 import { UserName } from '@/types/game'
 import { supabase } from '@/integrations/supabase/client'
 import { gameQuestions } from '@/lib/gameQuestions'
+import RoundResults from './shared/RoundResults'
 
 interface WouldYouDoGameProps {
   userSelection: UserName
@@ -22,6 +23,7 @@ const WouldYouDoGame = ({
   const [currentRound, setCurrentRound] = useState(1)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [waitingForOther, setWaitingForOther] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const currentQuestion = gameQuestions.would_you_do[currentRound - 1]
 
@@ -44,13 +46,9 @@ const WouldYouDoGame = ({
         const uniqueUsers = new Set(data?.map((r) => r.user_name))
 
         if (uniqueUsers.size === 2) {
-          if (currentRound < 5) {
-            setCurrentRound(currentRound + 1)
-            setIsSubmitted(false)
-            setWaitingForOther(false)
-          } else {
-            onGameComplete()
-          }
+          // Both players submitted, show results
+          setWaitingForOther(false)
+          setShowResults(true)
         }
       }, 1000)
     }
@@ -87,28 +85,16 @@ const WouldYouDoGame = ({
 
     setIsSubmitted(true)
     setWaitingForOther(true)
+  }
 
-    // Check if both players have submitted
-    setTimeout(async () => {
-      const { data } = await supabase
-        .from('game_responses')
-        .select('user_name')
-        .eq('session_id', sessionId)
-        .eq('game_type', 'would_you_do')
-        .eq('round_number', currentRound)
-
-      const uniqueUsers = new Set(data?.map((r) => r.user_name))
-
-      if (uniqueUsers.size === 2) {
-        if (currentRound < 5) {
-          setCurrentRound(currentRound + 1)
-          setIsSubmitted(false)
-          setWaitingForOther(false)
-        } else {
-          onGameComplete()
-        }
-      }
-    }, 1000)
+  const handleNextRound = () => {
+    if (currentRound < 5) {
+      setCurrentRound(currentRound + 1)
+      setIsSubmitted(false)
+      setShowResults(false)
+    } else {
+      onGameComplete()
+    }
   }
 
   return (
@@ -124,46 +110,59 @@ const WouldYouDoGame = ({
         </div>
 
         <Card className="p-8 shadow-xl">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-              Pregunta {currentRound} de 5
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              {currentQuestion}
-            </p>
-          </div>
-
-          {waitingForOther ? (
-            <div className="text-center">
-              <div className="animate-pulse mb-4">
-                <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
-              </div>
-              <p className="text-lg">                
-                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
-              </p>
-            </div>
+          {showResults ? (
+            <RoundResults
+              sessionId={sessionId}
+              gameType="would_you_do"
+              currentRound={currentRound}
+              userSelection={userSelection}
+              onNextRound={handleNextRound}
+              maxRounds={5}
+            />
           ) : (
-            <div className="flex justify-center space-x-8">
-              <Button
-                onClick={() => handleAnswer('yes')}
-                disabled={isSubmitted}
-                size="lg"
-                className="w-32 h-32 rounded-full bg-green-500 hover:bg-green-600 text-white flex flex-col items-center justify-center space-y-2"
-              >
-                <Heart className="w-8 h-8" />
-                <span className="text-lg font-bold">YES</span>
-              </Button>
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-4">
+                  Pregunta {currentRound} de 5
+                </h2>
+                <p className="text-xl text-muted-foreground mb-8">
+                  {currentQuestion}
+                </p>
+              </div>
 
-              <Button
-                onClick={() => handleAnswer('no')}
-                disabled={isSubmitted}
-                size="lg"
-                className="w-32 h-32 rounded-full bg-red-500 hover:bg-red-600 text-white flex flex-col items-center justify-center space-y-2"
-              >
-                <X className="w-8 h-8" />
-                <span className="text-lg font-bold">NO</span>
-              </Button>
-            </div>
+              {waitingForOther ? (
+                <div className="text-center">
+                  <div className="animate-pulse mb-4">
+                    <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
+                  </div>
+                  <p className="text-lg">
+                    {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex justify-center space-x-8">
+                  <Button
+                    onClick={() => handleAnswer('yes')}
+                    disabled={isSubmitted}
+                    size="lg"
+                    className="w-32 h-32 rounded-full bg-green-500 hover:bg-green-600 text-white flex flex-col items-center justify-center space-y-2"
+                  >
+                    <Heart className="w-8 h-8" />
+                    <span className="text-lg font-bold">YES</span>
+                  </Button>
+
+                  <Button
+                    onClick={() => handleAnswer('no')}
+                    disabled={isSubmitted}
+                    size="lg"
+                    className="w-32 h-32 rounded-full bg-red-500 hover:bg-red-600 text-white flex flex-col items-center justify-center space-y-2"
+                  >
+                    <X className="w-8 h-8" />
+                    <span className="text-lg font-bold">NO</span>
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </div>

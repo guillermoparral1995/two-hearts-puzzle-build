@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { UserName } from '@/types/game'
 import { supabase } from '@/integrations/supabase/client'
 import { gameQuestions } from '@/lib/gameQuestions'
+import RoundResults from './shared/RoundResults'
 
 interface PredictFutureGameProps {
     userSelection: UserName
@@ -24,6 +25,7 @@ const PredictFutureGame = ({
   const [answer, setAnswer] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [waitingForOther, setWaitingForOther] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const currentQuestion = gameQuestions.predict_future[currentRound - 1]
 
@@ -46,14 +48,9 @@ const PredictFutureGame = ({
         const uniqueUsers = new Set(data?.map((r) => r.user_name))
 
         if (uniqueUsers.size === 2) {
-          if (currentRound < 3) {
-            setCurrentRound(currentRound + 1)
-            setAnswer('')
-            setIsSubmitted(false)
-            setWaitingForOther(false)
-          } else {
-            onGameComplete()
-          }
+          // Both players submitted, show results
+          setWaitingForOther(false)
+          setShowResults(true)
         }
       }, 1000)
     }
@@ -93,6 +90,17 @@ const PredictFutureGame = ({
     setWaitingForOther(true)
   }
 
+  const handleNextRound = () => {
+    if (currentRound < 3) {
+      setCurrentRound(currentRound + 1)
+      setAnswer('')
+      setIsSubmitted(false)
+      setShowResults(false)
+    } else {
+      onGameComplete()
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
       <div className="max-w-4xl mx-auto">
@@ -106,45 +114,58 @@ const PredictFutureGame = ({
         </div>
 
         <Card className="p-8 shadow-xl">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-                            Ronda {currentRound} de 3
-            </h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              {currentQuestion}
-            </p>
-          </div>
-
-          {waitingForOther ? (
-            <div className="text-center">
-              <div className="animate-pulse mb-4">
-                <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
-              </div>
-              <p className="text-lg">
-                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
-              </p>
-            </div>
+          {showResults ? (
+            <RoundResults
+              sessionId={sessionId}
+              gameType="predict_future"
+              currentRound={currentRound}
+              userSelection={userSelection}
+              onNextRound={handleNextRound}
+              maxRounds={3}
+            />
           ) : (
-            <div className="space-y-6">
-              <Textarea
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Share your thoughts about the future..."
-                disabled={isSubmitted}
-                className="min-h-32"
-              />
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-4">
+                  Ronda {currentRound} de 3
+                </h2>
+                <p className="text-lg text-muted-foreground mb-6">
+                  {currentQuestion}
+                </p>
+              </div>
 
-              {!isSubmitted && (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={answer.trim() === ''}
-                  className="w-full"
-                  size="lg"
-                >
-                                    Enviar respuesta
-                </Button>
+              {waitingForOther ? (
+                <div className="text-center">
+                  <div className="animate-pulse mb-4">
+                    <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
+                  </div>
+                  <p className="text-lg">
+                    {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <Textarea
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Share your thoughts about the future..."
+                    disabled={isSubmitted}
+                    className="min-h-32"
+                  />
+
+                  {!isSubmitted && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={answer.trim() === ''}
+                      className="w-full"
+                      size="lg"
+                    >
+                      Enviar respuesta
+                    </Button>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </Card>
       </div>

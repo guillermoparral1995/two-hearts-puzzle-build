@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { UserName } from '@/types/game'
 import { supabase } from '@/integrations/supabase/client'
 import { gameQuestions } from '@/lib/gameQuestions'
+import RoundResults from './shared/RoundResults'
 
 interface Top10GameProps {
   userSelection: UserName
@@ -24,6 +25,7 @@ const Top10Game = ({
   const [answers, setAnswers] = useState<string[]>(Array(10).fill(''))
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [waitingForOther, setWaitingForOther] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const currentQuestion = gameQuestions.top10[currentRound - 1]
 
@@ -70,15 +72,9 @@ const Top10Game = ({
         const uniqueUsers = new Set(data?.map((r) => r.user_name))
 
         if (uniqueUsers.size === 2) {
-          // Both players submitted
-          if (currentRound < 3) {
-            setCurrentRound(currentRound + 1)
-            setAnswers(Array(10).fill(''))
-            setIsSubmitted(false)
-            setWaitingForOther(false)
-          } else {
-            onGameComplete()
-          }
+          // Both players submitted, show results
+          setWaitingForOther(false)
+          setShowResults(true)
         }
       }, 1000)
     }
@@ -105,6 +101,17 @@ const Top10Game = ({
     setWaitingForOther(true)
   }
 
+  const handleNextRound = () => {
+    if (currentRound < 3) {
+      setCurrentRound(currentRound + 1)
+      setAnswers(Array(10).fill(''))
+      setIsSubmitted(false)
+      setShowResults(false)
+    } else {
+      onGameComplete()
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-accent p-4">
       <div className="max-w-4xl mx-auto">
@@ -116,50 +123,63 @@ const Top10Game = ({
         </div>
 
         <Card className="p-8 shadow-xl">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-              Ronda {currentRound} de 3
-            </h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              {currentQuestion}
-            </p>
-          </div>
-
-          {waitingForOther ? (
-            <div className="text-center">
-              <div className="animate-pulse mb-4">
-                <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
-              </div>
-              <p className="text-lg">
-                {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
-              </p>
-            </div>
+          {showResults ? (
+            <RoundResults
+              sessionId={sessionId}
+              gameType="top10"
+              currentRound={currentRound}
+              userSelection={userSelection}
+              onNextRound={handleNextRound}
+              maxRounds={3}
+            />
           ) : (
-            <div className="space-y-4">
-              {Array.from({ length: 10 }, (_, index) => (
-                <div key={index} className="flex items-center space-x-4">
-                  <span className="text-lg font-medium w-8">{index + 1}.</span>
-                  <Textarea
-                    value={answers[index]}
-                    onChange={(e) => handleAnswerChange(index, e.target.value)}
-                    placeholder={`Item ${index + 1}`}
-                    disabled={isSubmitted}
-                    className="flex-1"
-                  />
-                </div>
-              ))}
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-4">
+                  Ronda {currentRound} de 3
+                </h2>
+                <p className="text-lg text-muted-foreground mb-6">
+                  {currentQuestion}
+                </p>
+              </div>
 
-              {!isSubmitted && (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={answers.some((a) => a.trim() === '')}
-                  className="w-full mt-6"
-                  size="lg"
-                >
-                  Enviar ronda {currentRound}
-                </Button>
+              {waitingForOther ? (
+                <div className="text-center">
+                  <div className="animate-pulse mb-4">
+                    <div className="w-16 h-16 bg-primary rounded-full mx-auto opacity-60"></div>
+                  </div>
+                  <p className="text-lg">
+                    {`Esperando a que ${userSelection === 'Delfina' ? 'Guillermo' : 'Delfina'} termine...`}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.from({ length: 10 }, (_, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      <span className="text-lg font-medium w-8">{index + 1}.</span>
+                      <Textarea
+                        value={answers[index]}
+                        onChange={(e) => handleAnswerChange(index, e.target.value)}
+                        placeholder={`Item ${index + 1}`}
+                        disabled={isSubmitted}
+                        className="flex-1"
+                      />
+                    </div>
+                  ))}
+
+                  {!isSubmitted && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={answers.some((a) => a.trim() === '')}
+                      className="w-full mt-6"
+                      size="lg"
+                    >
+                      Enviar ronda {currentRound}
+                    </Button>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </Card>
       </div>
