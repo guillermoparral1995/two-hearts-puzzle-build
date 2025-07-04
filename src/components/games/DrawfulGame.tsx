@@ -86,11 +86,12 @@ const DrawfulGame = ({
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
       })
-      .on('broadcast', { event: 'submit' }, ({ payload: { round } }) => {
+      .on('broadcast', { event: 'submit' }, ({ payload: { round, response } }) => {
         // Only process if this is for the current round and we're the drawing player
         if (round === currentRound && isDrawing) {
           setIsLocked(true)
           setShowingPrompt(true)
+          setGuess(response)
           setTimeout(() => {
             proceedToNextRound()
           }, 3000)
@@ -208,7 +209,7 @@ const DrawfulGame = ({
       channelRef.current.send({
         type: 'broadcast',
         event: 'submit',
-        payload: { round: currentRound }
+        payload: { round: currentRound, response: guess }
       })
     } catch (error) {
       console.error('Error saving guess:', error)
@@ -253,13 +254,9 @@ const DrawfulGame = ({
                 <p className="text-2xl font-bold text-primary mb-4">El dibujo era:</p>
                 <p className="text-3xl font-bold">{currentPrompt}</p>
               </div>
-              <div className="flex justify-center">
-                <canvas
-                  ref={canvasRef}
-                  width={400}
-                  height={300}
-                  className="border-2 border-border rounded-lg bg-white"
-                />
+              <div className="mb-6">
+                <p className="text-2xl font-bold text-primary mb-4">La respuesta fue:</p>
+                <p className="text-3xl font-bold">{guess}</p>
               </div>
             </div>
           ) : (
@@ -280,23 +277,28 @@ const DrawfulGame = ({
                 </div>
               )}
 
-              <div className="flex justify-center">
-                <canvas
-                  ref={canvasRef}
-                  width={400}
-                  height={300}
-                  className={`border-2 border-border rounded-lg bg-white touch-none ${
-                    isDrawing && !isLocked ? 'cursor-crosshair' : 'cursor-default'
-                  }`}
-                  onTouchStart={isDrawing && !isLocked ? startDrawing : undefined}
-                  onMouseDown={isDrawing && !isLocked ? startDrawing : undefined}
-                  onTouchMove={isDrawing && !isLocked ? draw : undefined}
-                  onMouseMove={isDrawing && !isLocked ? draw : undefined}
-                  onTouchEnd={isDrawing && !isLocked ? stopDrawing : undefined}
-                  onMouseUp={isDrawing && !isLocked ? stopDrawing : undefined}
-                  onMouseLeave={isDrawing && !isLocked ? stopDrawing : undefined}
-                />
-              </div>
+              {
+                !showingPrompt ? 
+                  <div className="flex justify-center">
+                    <canvas
+                      ref={canvasRef}
+                      width={400}
+                      height={300}
+                      className={`border-2 border-border rounded-lg bg-white touch-none ${
+                        isDrawing && !isLocked ? 'cursor-crosshair' : 'cursor-default'
+                      }`}
+                      onTouchStart={isDrawing && !isLocked ? startDrawing : undefined}
+                      onMouseDown={isDrawing && !isLocked ? startDrawing : undefined}
+                      onTouchMove={isDrawing && !isLocked ? draw : undefined}
+                      onMouseMove={isDrawing && !isLocked ? draw : undefined}
+                      onTouchEnd={isDrawing && !isLocked ? stopDrawing : undefined}
+                      onMouseUp={isDrawing && !isLocked ? stopDrawing : undefined}
+                      onMouseLeave={isDrawing && !isLocked ? stopDrawing : undefined}
+                    />
+                  </div> : null
+              }
+
+
 
               {isDrawing && !isLocked && (
                 <div className="flex justify-center space-x-4">
